@@ -436,6 +436,20 @@ button {
 	margin-left: auto;
 }
 
+/* 桌面端对齐美化：统一标签区宽度使三个输入控件等宽；按钮组内等宽 */
+.control-row .field > label,
+.control-row .field .label-row {
+	flex: 0 0 82px;
+}
+
+@media (min-width: 641px) {
+	.control-row-actions .btn,
+	.result-actions-group .btn {
+		flex: 1 1 0;
+		min-width: 0;
+	}
+}
+
 .input,
 .select {
 	width: 100%;
