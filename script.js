@@ -229,7 +229,6 @@ const els = {
 	networkWarningSummary: $("#networkWarningSummary"),
 	networkWarningDetails: $("#networkWarningDetails"),
 	networkWarningJson: $("#networkWarningJson"),
-	networkWarningConfirmBtn: $("#networkWarningConfirmBtn"),
 	networkWarningLocalBtn: $("#networkWarningLocalBtn")
 };
 
@@ -307,7 +306,6 @@ function bindEvents() {
 	els.copyResultsBtn.addEventListener("click", copySelectedResultsToClipboard);
 	els.exportTxtBtn.addEventListener("click", exportSelectedResultsTxt);
 	els.exportCsvBtn.addEventListener("click", exportOptimizeResultsCsv);
-	els.networkWarningConfirmBtn.addEventListener("click", confirmNetworkWarning);
 	els.networkWarningLocalBtn.addEventListener("click", openLocalOptimizeFromWarning);
 	document.querySelectorAll("[data-sort]").forEach((button) => {
 		button.addEventListener("click", () => setResultSort(button.dataset.sort));
@@ -432,7 +430,7 @@ async function refreshCnNetwork({ resetResults = false, stopRuns = false } = {})
 function showNetworkWarning() {
 	renderNetworkWarning(buildNetworkWarningContext());
 	els.networkWarningOverlay.classList.add("is-visible");
-	els.networkWarningConfirmBtn.focus();
+	els.networkWarningLocalBtn.focus();
 }
 
 function buildNetworkWarningContext() {
@@ -511,30 +509,11 @@ function renderNetworkWarningFailedRow(family, info) {
 	</div>`;
 }
 
-function confirmNetworkWarning() {
-	if (window.parent && window.parent !== window) {
-		try {
-			window.parent.location.reload();
-			return;
-		} catch (error) {
-			// Fall back to postMessage below when direct parent access is unavailable.
-		}
-
-		try {
-			window.parent.postMessage({ type: "bestcf-force-reload" }, "*");
-			return;
-		} catch (error) {
-			// Ignore and reload the current document as a last resort.
-		}
-	}
-
-	window.location.reload();
-}
-
 function openLocalOptimizeFromWarning() {
 	// 关闭当前警告弹窗
 	els.networkWarningOverlay.classList.remove("is-visible");
 
+	// 嵌入管理面板时优先交给父页面处理（关闭在线优选全屏并打开其本地优选目录）
 	if (window.parent && window.parent !== window) {
 		try {
 			if (typeof window.parent.switchToLocalOptimizeFromOnline === "function") {
@@ -542,15 +521,219 @@ function openLocalOptimizeFromWarning() {
 				return;
 			}
 		} catch (error) {
-			// Fall back to postMessage below when direct parent access is unavailable.
+			// 跨域嵌入时无法直接访问父页面函数，改用本页内置的本地优选目录。
 		}
+	}
 
+	// 独立运行（或父页面无本地优选能力）时，打开本页内置的本地优选工具目录
+	openLocalOptimizeModal();
+}
+
+// ==================== 本地优选 - CF 优选工具目录 ====================
+
+const CF_TOOLS_RAW_URL = "https://raw.githubusercontent.com/cmliu/cmliu/refs/heads/main/json/best-cf-tools.json";
+const RAW_GITHUB_PREFIX = "https://raw.githubusercontent.com";
+const RAW_MIRROR_DOMAINS = [
+	"https://github.090227.xyz/raw.githubusercontent.com",
+	"https://github.cmliussss.com/raw.githubusercontent.com",
+	"https://github.cmliussss.net/raw.githubusercontent.com"
+];
+let localOptimizeProjects = [];
+let localUiFilter = "all";
+
+// GitHub Star 图标（octicon star）
+const STAR_SVG = '<svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"></path></svg>';
+
+// 打开本地优选工具目录弹窗（并发拉取工具清单，RAW 失败自动切换镜像）
+async function openLocalOptimizeModal() {
+	const modal = document.getElementById("localOptimizeModal");
+	const list = document.getElementById("localOptimizeToolList");
+	if (!modal || !list) return;
+
+	modal.classList.add("show");
+
+	// 已加载过则直接显示，避免重复请求
+	if (list.dataset.loaded === "true") return;
+
+	list.innerHTML = '<div class="local-tools-loading">⏳ 正在拉取 CF 优选工具目录…</div>';
+
+	try {
+		const jsonText = await fetchWithAutoMirror(`${CF_TOOLS_RAW_URL}?_t=${Date.now()}`, "CF优选工具目录");
+		const data = JSON.parse(jsonText);
+		const projects = Array.isArray(data && data.projects) ? data.projects : [];
+		renderLocalOptimizeTools(list, projects);
+		list.dataset.loaded = "true";
+	} catch (error) {
+		console.error("[请求RAW] CF优选工具目录拉取失败:", error);
+		list.innerHTML = `
+			<div class="local-tools-error">
+				❌ 工具目录拉取失败，请检查网络后重试<br>
+				<button type="button" class="local-tools-retry" onclick="openLocalOptimizeModal()">重试</button>
+			</div>`;
+	}
+}
+
+// 渲染本地优选工具卡片
+function renderLocalOptimizeTools(list, projects) {
+	localOptimizeProjects = projects;
+
+	// 同步类型筛选按钮高亮态，保证弹窗重开时高亮一致
+	const filterButtons = document.querySelectorAll("#localUiFilter .local-ui-filter-btn");
+	filterButtons.forEach((button) => {
+		button.classList.toggle("is-active", button.dataset.ui === localUiFilter);
+	});
+
+	if (!projects.length) {
+		list.innerHTML = '<div class="local-tools-error">😕 暂无可用的本地优选工具</div>';
+		return;
+	}
+
+	const uiLabels = {
+		webui: { emoji: "🌐", label: "网页界面" },
+		gui: { emoji: "🖥️", label: "图形界面" },
+		cli: { emoji: "⌨️", label: "命令行CLI" }
+	};
+
+	// 按 stars 数由高到低排序，携带原始索引（openLocalToolGitHub 依赖 localOptimizeProjects 索引）
+	const ranked = projects
+		.map((project, index) => ({ project, index }))
+		.sort((a, b) => (Number(b.project.stars) || 0) - (Number(a.project.stars) || 0));
+
+	// 按类型筛选
+	const filtered = ranked.filter(({ project }) => {
+		if (localUiFilter === "all") return true;
+		const uiValues = Array.isArray(project.ui)
+			? project.ui.map((value) => String(value).trim().toLowerCase())
+			: [];
+		return uiValues.includes(localUiFilter);
+	});
+
+	if (!filtered.length) {
+		const currentLabel = (uiLabels[localUiFilter] && uiLabels[localUiFilter].label) || "该";
+		list.innerHTML = `<div class="local-tools-error">😕 没有「${currentLabel}」类型的工具</div>`;
+		return;
+	}
+
+	list.innerHTML = filtered.map(({ project, index }, i) => {
+		const name = escapeHtml(String(project.name || "未命名工具"));
+		const author = project.author ? escapeHtml(String(project.author)) : "";
+		const description = project.description ? escapeHtml(String(project.description)) : "";
+		const platforms = Array.isArray(project.platforms) ? project.platforms : [];
+		const platformBadges = platforms
+			.map((platform) => `<span class="local-tool-platform">${escapeHtml(String(platform))}</span>`)
+			.join("");
+		const uiList = Array.isArray(project.ui) ? project.ui : [];
+		const uiBadges = uiList
+			.filter((value) => value !== null && value !== undefined && String(value).trim() !== "")
+			.map((value) => {
+				const key = String(value).trim().toLowerCase();
+				const meta = uiLabels[key];
+				if (!meta) {
+					return `<span class="local-tool-ui">${escapeHtml(String(value))}</span>`;
+				}
+				return `<span class="local-tool-ui local-tool-ui-${key}">${meta.emoji} ${meta.label}</span>`;
+			})
+			.join("");
+
+		// GitHub Stars 徽章（无有效数据时不显示）
+		const starsNum = Number(project.stars);
+		const starsBadge = Number.isFinite(starsNum) && starsNum > 0
+			? `<span class="local-tool-stars" title="GitHub Stars">${STAR_SVG}${starsNum.toLocaleString("en-US")}</span>`
+			: "";
+
+		return `
+			<div class="local-tool-card" style="animation-delay: ${Math.min(i, 8) * 40}ms">
+				<div class="local-tool-head">
+					<span class="local-tool-name">${name}</span>
+					${author ? `<span class="local-tool-author">@${author}</span>` : ""}
+					${starsBadge}
+				</div>
+				<div class="local-tool-desc">${description}</div>
+				${(uiBadges || platformBadges) ? `<div class="local-tool-platforms">${uiBadges}${platformBadges}</div>` : ""}
+				<div class="local-tool-actions">
+					<button type="button" class="local-tool-github" onclick="openLocalToolGitHub(${index})">
+						🔗 前往 GitHub
+					</button>
+				</div>
+			</div>`;
+	}).join("");
+}
+
+// 设置本地优选工具类型筛选（白名单：all/webui/gui/cli）
+function setLocalUiFilter(type) {
+	if (type !== "all" && type !== "webui" && type !== "gui" && type !== "cli") return;
+	localUiFilter = type;
+
+	const filterButtons = document.querySelectorAll("#localUiFilter .local-ui-filter-btn");
+	filterButtons.forEach((button) => {
+		button.classList.toggle("is-active", button.dataset.ui === localUiFilter);
+	});
+
+	const list = document.getElementById("localOptimizeToolList");
+	if (list) renderLocalOptimizeTools(list, localOptimizeProjects);
+}
+
+// 在新窗口打开所选工具的 GitHub 仓库
+function openLocalToolGitHub(index) {
+	const project = localOptimizeProjects[index];
+	if (!project || !project.url) {
+		showOptimizeToast("未找到该工具的 GitHub 地址");
+		return;
+	}
+	window.open(project.url, "_blank", "noopener");
+}
+
+// 并发拉取 RAW 资源，原始链接与镜像谁先返回用谁（单个候选 10 秒超时）
+async function fetchWithAutoMirror(originalUrl, description = "资源") {
+	const candidates = [{ url: originalUrl, label: "原始链接" }];
+	if (originalUrl.startsWith(RAW_GITHUB_PREFIX)) {
+		RAW_MIRROR_DOMAINS.forEach((mirrorDomain, index) => {
+			candidates.push({
+				url: originalUrl.replace(RAW_GITHUB_PREFIX, mirrorDomain),
+				label: `备用镜像 ${index + 1}`
+			});
+		});
+	}
+
+	const controllers = candidates.map(() => new AbortController());
+	let hasWinner = false;
+
+	const requests = candidates.map((candidate, index) => (async () => {
+		const controller = controllers[index];
+		const timer = window.setTimeout(() => controller.abort(), 10000);
 		try {
-			window.parent.postMessage({ type: "bestcf-open-local-optimize" }, "*");
-			return;
+			const response = await fetch(candidate.url, {
+				method: "GET",
+				cache: "no-store",
+				signal: controller.signal
+			});
+			if (!response.ok) throw new Error(`HTTP ${response.status}`);
+			const text = await response.text();
+			return { ...candidate, index, text };
 		} catch (error) {
-			// Ignore — nothing else we can do from inside the frame.
+			if (!(hasWinner && error.name === "AbortError")) {
+				console.warn(`[请求RAW] ❌ ${candidate.label}拉取失败: ${error.message}`);
+			}
+			throw error;
+		} finally {
+			window.clearTimeout(timer);
 		}
+	})());
+
+	try {
+		const winner = await Promise.any(requests);
+		hasWinner = true;
+		controllers.forEach((controller, index) => {
+			if (index !== winner.index) controller.abort();
+		});
+		return winner.text;
+	} catch (error) {
+		const mirrorCount = Math.max(candidates.length - 1, 0);
+		throw new Error(
+			mirrorCount > 0
+				? `${description}拉取失败，已尝试原始链接和全部${mirrorCount}个备用镜像`
+				: `${description}拉取失败，原始链接不可用`
+		);
 	}
 }
 
