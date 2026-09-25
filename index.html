@@ -9,6 +9,16 @@
 </head>
 
 <body>
+	<div class="boot-loading" id="bootLoading" role="status" aria-live="polite">
+		<div class="boot-loading-card">
+			<div class="boot-loading-brand">BestCF</div>
+			<div class="boot-loading-status" id="bootLoadingStatus">正在检测网络环境…</div>
+			<div class="boot-loading-track" aria-hidden="true">
+				<div class="boot-loading-bar" id="bootLoadingBar"></div>
+			</div>
+		</div>
+	</div>
+
 	<main class="shell">
 		<header class="topbar">
 			<div class="brand">
@@ -242,6 +252,9 @@
 		</div>
 	</div>
 
+	<noscript>
+		<style>.boot-loading{display:none!important}</style>
+	</noscript>
 	<script src="script.js"></script>
 </body>
 

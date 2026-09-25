@@ -1110,6 +1110,75 @@ td.ip-cell {
 	text-align: right;
 }
 
+/* ==================== 开屏加载动画 ==================== */
+.boot-loading {
+	position: fixed;
+	inset: 0;
+	z-index: 90;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 18px;
+	background: var(--bg);
+	transition: opacity 0.5s ease 0.08s, visibility 0.5s ease 0.08s;
+}
+
+.boot-loading.is-hidden {
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+}
+
+.boot-loading.is-hidden .boot-loading-card {
+	opacity: 0;
+	transform: translateY(-10px) scale(0.98);
+}
+
+.boot-loading-card {
+	display: grid;
+	justify-items: center;
+	gap: 14px;
+	padding: 30px 36px;
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	background: var(--panel);
+	box-shadow: var(--shadow);
+	transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.boot-loading-brand {
+	color: var(--text);
+	font-size: 24px;
+	font-weight: 800;
+	letter-spacing: 0.5px;
+}
+
+.boot-loading-status {
+	color: var(--muted);
+	font-size: 13px;
+	font-weight: 650;
+}
+
+.boot-loading-track {
+	width: min(260px, 70vw);
+	height: 8px;
+	overflow: hidden;
+	border-radius: 999px;
+	background: var(--ink-soft);
+}
+
+.boot-loading-bar {
+	width: 0;
+	height: 100%;
+	border-radius: inherit;
+	background: linear-gradient(90deg, var(--blue), var(--green));
+	transition: width 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.boot-loading-bar.is-crawling {
+	transition-duration: 5s;
+}
+
 .network-warning-overlay {
 	position: fixed;
 	inset: 0;
@@ -1124,6 +1193,7 @@ td.ip-cell {
 
 .network-warning-overlay.is-visible {
 	display: flex;
+	animation: networkWarningOverlayFade 0.34s ease-out;
 }
 
 .network-warning-modal {
@@ -1134,7 +1204,7 @@ td.ip-cell {
 	box-shadow: 0 28px 80px rgba(127, 29, 29, 0.72), 0 0 0 8px rgba(220, 38, 38, 0.24);
 	color: #ffffff;
 	overflow: hidden;
-	animation: networkWarningPop 0.18s ease-out;
+	animation: networkWarningPop 0.34s cubic-bezier(0.22, 0.61, 0.36, 1) 0.06s both;
 }
 
 .network-warning-modal.is-request-failed {
@@ -1315,12 +1385,22 @@ td.ip-cell {
 @keyframes networkWarningPop {
 	0% {
 		opacity: 0;
-		transform: scale(0.96);
+		transform: translateY(14px) scale(0.96);
 	}
 
 	100% {
 		opacity: 1;
-		transform: scale(1);
+		transform: translateY(0) scale(1);
+	}
+}
+
+@keyframes networkWarningOverlayFade {
+	0% {
+		opacity: 0;
+	}
+
+	100% {
+		opacity: 1;
 	}
 }
 

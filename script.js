@@ -232,9 +232,58 @@ const els = {
 	networkWarningLocalBtn: $("#networkWarningLocalBtn")
 };
 
+// ==================== 开屏加载动画 ====================
+
+const BOOT_LOADING_MIN_VISIBLE = 800;
+const bootLoading = {
+	active: true,
+	startedAt: performance.now(),
+	timers: []
+};
+
+function scheduleBootLoadingProgress() {
+	const bar = document.getElementById("bootLoadingBar");
+	if (!bar) return;
+	[
+		{ delay: 60, width: "30%" },
+		{ delay: 700, width: "60%" },
+		{ delay: 1600, width: "80%" },
+		{ delay: 2600, width: "90%" },
+		{ delay: 3000, width: "98%", crawl: true }
+	].forEach(({ delay, width, crawl }) => {
+		bootLoading.timers.push(window.setTimeout(() => {
+			if (crawl) bar.classList.add("is-crawling");
+			bar.style.width = width;
+		}, delay));
+	});
+}
+
+function finishBootLoading() {
+	// 冲刺 100%（先退出慢速蠕动）→ 分层淡出（卡片先行、背景随后）→ resolve 后由调用方弹警告/放行
+	const overlay = document.getElementById("bootLoading");
+	const bar = document.getElementById("bootLoadingBar");
+	bootLoading.timers.forEach((timer) => window.clearTimeout(timer));
+	bootLoading.timers = [];
+	const wait = Math.max(0, BOOT_LOADING_MIN_VISIBLE - (performance.now() - bootLoading.startedAt));
+	return new Promise((resolve) => {
+		window.setTimeout(() => {
+			if (bar) {
+				bar.classList.remove("is-crawling");
+				bar.style.width = "100%";
+			}
+			window.setTimeout(() => {
+				if (overlay) overlay.classList.add("is-hidden");
+				bootLoading.active = false;
+				window.setTimeout(resolve, 580);
+			}, 320);
+		}, wait);
+	});
+}
+
 document.addEventListener("DOMContentLoaded", () => {
 	bindEvents();
 	updateEditorMeta();
+	scheduleBootLoadingProgress();
 	detectNetwork();
 	if ("ResizeObserver" in window) {
 		state.editorResizeObserver = new ResizeObserver(updateEditorMeta);
@@ -419,8 +468,14 @@ async function refreshCnNetwork({ resetResults = false, stopRuns = false } = {})
 		updateServiceStatus();
 
 		const allowed = availableFamilies().length > 0;
+		if (bootLoading.active) {
+			await finishBootLoading();
+		}
 		if (!allowed) showNetworkWarning();
 		return allowed;
+	} catch (error) {
+		if (bootLoading.active) await finishBootLoading();
+		throw error;
 	} finally {
 		state.networkChecking = false;
 		updateActionAvailability();
