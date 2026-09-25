@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>BestCF</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+	<main class="shell">
+		<header class="topbar">
+			<div class="brand">
+				<div class="brand-mark" aria-hidden="true">
+					<svg class="icon" viewBox="0 0 24 24">
+						<path d="M12 3v18"></path>
+						<path d="M3 12h18"></path>
+						<path d="M5.6 5.6c4.5 3.8 8.3 3.8 12.8 0"></path>
+						<path d="M5.6 18.4c4.5-3.8 8.3-3.8 12.8 0"></path>
+						<circle cx="12" cy="12" r="9"></circle>
+					</svg>
+				</div>
+				<div>
+					<h1>BestCF</h1>
+					<small>在线优选</small>
+				</div>
+			</div>
+			<button class="icon-btn theme-toggle-btn" id="themeToggleBtn" type="button" aria-label="切换配色"></button>
+		</header>
+
+		<div class="layout">
+			<div class="stack">
+				<section class="network-panel" aria-label="网络环境">
+					<div class="network-grid">
+						<article class="network-item" id="ipv4Card">
+							<div class="network-kind">IPv4</div>
+							<div class="network-copy">
+								<strong class="network-address" id="ipv4Value">检测中</strong>
+								<span class="network-note">识别线路</span>
+							</div>
+							<span class="tag idle" id="ipv4Tag">等待</span>
+						</article>
+
+						<article class="network-item" id="ipv6Card">
+							<div class="network-kind">IPv6</div>
+							<div class="network-copy">
+								<strong class="network-address" id="ipv6Value">检测中</strong>
+								<span class="network-note">识别线路</span>
+							</div>
+							<span class="tag idle" id="ipv6Tag">等待</span>
+						</article>
+					</div>
+				</section>
+			</div>
+
+			<div class="stack">
+				<section class="panel" aria-labelledby="inputTitle">
+					<div class="panel-head">
+						<h2 class="panel-title" id="inputTitle">待选列表</h2>
+					</div>
+					<div class="panel-body">
+						<div class="control-row">
+							<div class="field">
+								<label for="timeoutInput">超时时间 ms</label>
+								<input class="input" id="timeoutInput" type="number" min="100"
+									max="10000" step="50" value="500">
+							</div>
+							<div class="field">
+								<label for="threadsInput">并发线程</label>
+								<input class="input" id="threadsInput" type="number" min="1" max="32"
+									step="1" value="16">
+							</div>
+							<div class="field">
+								<div class="label-row">
+									<label for="portSelect">优选端口</label>
+									<span class="help-tip" tabindex="0" role="img" aria-label="端口说明"
+										data-tip="选择「随机端口」时，将在 443、2053、2083、2087、2096、8443 中随机选取。">!</span>
+								</div>
+								<select class="select" id="portSelect">
+									<option value="0">随机端口</option>
+									<option value="443">443</option>
+									<option value="2053">2053</option>
+									<option value="2083">2083</option>
+									<option value="2087">2087</option>
+									<option value="2096">2096</option>
+									<option value="8443">8443</option>
+								</select>
+							</div>
+							<div class="control-row-actions">
+								<button class="btn secondary" id="domainImportBtn" type="button">
+									<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+										<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+										<path d="M7 10l5 5 5-5"></path>
+										<path d="M12 15V3"></path>
+									</svg>
+									CF域名导入
+								</button>
+								<button class="btn" id="latencyBtn" type="button" disabled>
+									<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+										<path d="M5 12h4l3-7 3 14 3-7h1"></path>
+									</svg>
+									优选延迟
+								</button>
+							</div>
+						</div>
+
+						<div class="editor">
+							<div class="editor-bar">
+								<span class="editor-count" id="lineCount">0 行</span>
+								<button class="icon-btn" id="clearBtn" type="button" title="清空列表"
+									aria-label="清空列表">
+									<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+										<path d="M3 6h18"></path>
+										<path d="M8 6V4h8v2"></path>
+										<path d="M19 6l-1 14H6L5 6"></path>
+										<path d="M10 11v5"></path>
+										<path d="M14 11v5"></path>
+									</svg>
+								</button>
+							</div>
+							<div class="editor-body">
+								<div class="line-gutter" id="lineGutter" aria-hidden="true">
+									<pre id="lineNumbers">1</pre>
+								</div>
+								<div class="textarea-wrap">
+									<div class="line-shades" id="lineShades" aria-hidden="true">
+										<div class="shade-line"></div>
+									</div>
+									<textarea id="ipInput" spellcheck="false"
+										placeholder="域名格式:&#10;dash.cloudflare.com&#10;cf.example.com:8443"></textarea>
+								</div>
+							</div>
+						</div>
+
+						<div class="progress">
+							<div class="progress-meta">
+								<span class="tiny muted" id="latencyStatus">等待网络检测</span>
+								<span class="tiny muted" id="progressText">0 / 0</span>
+							</div>
+							<div class="progress-line" aria-hidden="true">
+								<div class="progress-bar" id="latencyProgress"></div>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<section class="panel" aria-labelledby="resultTitle">
+					<div class="panel-head">
+						<h2 class="panel-title" id="resultTitle">优选结果</h2>
+						<span class="tag idle" id="resultCount">0 个可用</span>
+					</div>
+					<div class="result-wrap">
+						<table>
+							<thead>
+								<tr>
+									<th class="selection-cell"><input id="selectAllHeader" type="checkbox"
+											title="全选" aria-label="全选"></th>
+									<th style="width: 33%"><button class="sort-header" type="button"
+											data-sort="address">优选域名 <span class="sort-mark"
+												data-sort-mark="address"></span></button></th>
+									<th class="filterable-header" style="width: 17%"><button class="sort-header"
+											type="button" data-sort="type"><span class="filter-header-label"
+												role="button" tabindex="0" data-filter-key="type">优选类型</span>
+										<span class="sort-mark" data-sort-mark="type"></span></button></th>
+									<th class="filterable-header" style="width: 15%"><button class="sort-header"
+											type="button" data-sort="country"><span class="filter-header-label"
+												role="button" tabindex="0" data-filter-key="country">国家地区</span>
+											<span class="sort-mark" data-sort-mark="country"></span></button>
+									</th>
+									<th class="filterable-header" style="width: 13%"><button class="sort-header"
+											type="button" data-sort="colo"><span class="filter-header-label"
+												role="button" tabindex="0" data-filter-key="colo">数据中心</span>
+											<span class="sort-mark" data-sort-mark="colo"></span></button></th>
+									<th style="width: 18%"><button class="sort-header" type="button"
+											data-sort="latency">延迟(ms) <span class="sort-mark"
+												data-sort-mark="latency"></span></button></th>
+								</tr>
+							</thead>
+							<tbody id="resultBody">
+								<tr>
+									<td class="empty" colspan="6">暂无结果</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					<div class="result-actions">
+						<div class="result-actions-group">
+							<button class="btn secondary" id="invertSelectBtn" type="button">反选</button>
+							<button class="btn secondary" id="clearSelectBtn" type="button">重置</button>
+						</div>
+						<div class="result-actions-group">
+							<span class="tiny muted selection-status" id="selectionStatus">已选 0 个</span>
+							<button class="btn success" id="copyResultsBtn" type="button" disabled>复制到粘贴板</button>
+							<button class="btn" id="exportTxtBtn" type="button" disabled>导出到TXT</button>
+							<button class="btn" id="exportCsvBtn" type="button" disabled>导出到CSV</button>
+						</div>
+					</div>
+				</section>
+			</div>
+		</div>
+
+		<p class="bestcf-credit">
+			© BestCF · CF官方优选 仅供学习研究· 源码 <a href="https://github.com/cmliu/CF-Pages-BestCF" target="_blank"
+				rel="noopener noreferrer">cmliu/CF-Pages-BestCF</a> · 优选站点维护：<a href="https://t.me/CMLiussss" target="_blank"
+				rel="noopener noreferrer">CMLiussss</a>
+		</p>
+	</main>
+
+	<div class="network-warning-overlay" id="networkWarningOverlay" role="dialog" aria-modal="true"
+		aria-labelledby="networkWarningTitle">
+		<div class="network-warning-modal" id="networkWarningModal">
+			<div class="network-warning-body">
+				<div class="network-warning-heading" id="networkWarningHeading">红牌警告</div>
+				<div class="network-warning-title" id="networkWarningTitle">检测到当前网络出口不是 CN 直连</div>
+				<div class="network-warning-message" id="networkWarningMessage"></div>
+				<div class="network-warning-summary" id="networkWarningSummary"></div>
+				<details class="network-warning-details" id="networkWarningDetails" hidden>
+					<summary>查看详细响应内容</summary>
+					<pre class="network-warning-json" id="networkWarningJson"></pre>
+				</details>
+			</div>
+			<div class="network-warning-actions">
+				<button class="btn btn-local-warning" id="networkWarningLocalBtn" type="button">本地优选</button>
+				<button class="btn" id="networkWarningConfirmBtn" type="button">确定</button>
+			</div>
+		</div>
+	</div>
+
+	<script src="script.js"></script>
+</body>
+
+</html>
