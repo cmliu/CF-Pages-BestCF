@@ -1031,20 +1031,50 @@ function stopLatencyRun() {
 	els.latencyStatus.textContent = "正在停止优选";
 }
 
+// GET 取参数首次失败后最多重试 3 次（合计最多 4 次 GET）；延迟测量依次发起 3 次 GET 取最小值。
+const TRACE_RETRY_LIMIT = 3;
+const LATENCY_MEASURE_COUNT = 3;
+
 async function testLatency(address, timeout, run) {
 	const parsed = parseProbeTarget(address);
 	if (!parsed) throw new Error("地址格式无效");
 	const url = buildTraceUrl(parsed.host, parsed.port);
 
-	const started = performance.now();
-	const response = await fetchWithTimeout(url, { method: "GET", timeout, run });
-	if (!response.ok) throw new Error("GET 不可用");
-	const text = await response.text();
-	const latency = Math.max(1, Math.round(performance.now() - started));
-	if (latency > timeout) throw new Error("延迟超过超时时间");
+	// 阶段一：GET 仅用于获取参数（DNS/建连耗时不计入延迟），失败可重试
+	let trace = null;
+	let lastError = null;
+	for (let attempt = 0; attempt <= TRACE_RETRY_LIMIT; attempt++) {
+		if (run && run.stopped) throw new Error("已停止");
+		try {
+			const response = await fetchWithTimeout(url, { method: "GET", timeout, run });
+			if (!response.ok) throw new Error("GET 不可用");
+			const text = await response.text();
+			const parsedTrace = parseCfTrace(text);
+			if (!isQualifiedTraceDomain(parsedTrace, parsed.host)) throw new Error("非合格优选域名");
+			trace = parsedTrace;
+			break;
+		} catch (error) {
+			lastError = error;
+		}
+	}
+	if (!trace) throw lastError || new Error("参数获取失败");
 
-	const trace = parseCfTrace(text);
-	if (!isQualifiedTraceDomain(trace, parsed.host)) throw new Error("非合格优选域名");
+	// 阶段二：参数就绪后依次发起 3 次 GET 测速（串行执行，避免并发争抢带宽干扰样本），取最小值作为延迟
+	const samples = [];
+	for (let index = 0; index < LATENCY_MEASURE_COUNT; index++) {
+		if (run && run.stopped) throw new Error("已停止");
+		const started = performance.now();
+		try {
+			const response = await fetchWithTimeout(url, { method: "GET", timeout, run });
+			if (!response.ok) throw new Error("GET 不可用");
+			await response.text();
+		} catch (error) {
+			continue;
+		}
+		samples.push(Math.max(1, Math.round(performance.now() - started)));
+	}
+	if (!samples.length) throw new Error("GET 测速失败");
+	const latency = Math.min(...samples);
 
 	return {
 		address,
