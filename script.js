@@ -1211,10 +1211,9 @@ function updateSelectionState() {
 	const selected = state.selectedIds.size;
 	const visibleSelected = visibleIds.filter((id) => state.selectedIds.has(id)).length;
 	els.selectionStatus.textContent = `已选 ${selected} 个`;
-	const hasResults = state.results.length > 0;
-	els.copyResultsBtn.disabled = !hasResults;
-	els.exportTxtBtn.disabled = !hasResults;
-	els.exportCsvBtn.disabled = !hasResults;
+	els.copyResultsBtn.disabled = selected === 0;
+	els.exportTxtBtn.disabled = selected === 0;
+	els.exportCsvBtn.disabled = selected === 0;
 	els.invertSelectBtn.disabled = total === 0;
 	els.clearSelectBtn.disabled = selected === 0 && !hasActiveResultFilters();
 	els.selectAllHeader.disabled = total === 0;

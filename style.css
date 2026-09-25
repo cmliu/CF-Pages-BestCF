@@ -1087,6 +1087,15 @@ td.ip-cell {
 	gap: 10px;
 }
 
+.result-actions .btn:disabled {
+	border-color: var(--line);
+	background: var(--ink-soft);
+	color: var(--muted);
+	box-shadow: none;
+	opacity: 1;
+	cursor: not-allowed;
+}
+
 .bestcf-credit {
 	margin-top: 18px;
 	color: var(--muted);
