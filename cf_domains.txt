@@ -1,6 +1,5 @@
 skk.moe
 cloudflare-ip.mofashi.ltd
-dash.cloudflare.com
 time.is
 cf.0sm.com
 cdns.doon.eu.org
@@ -19,7 +18,6 @@ digitalocean.com
 www.udacity.com
 videodelivery.net
 bestcf.030101.xyz
-cloudflare.net
 cf.090227.xyz
 img.imgdd.com
 www.visa.com.hk
@@ -76,7 +74,6 @@ dynadot.com
 cf.3666888.xyz
 gitlab.com
 www.libvio.site
-gh-proxy.com
 www.wto.org
 bbs.alipansou.com
 saas.sin.fan
@@ -323,13 +320,11 @@ vps.cheng2001.top
 pubs.acs.org
 funko.com
 cf.nyanya.moe
-4gxb7l7p40.cloudflare-gateway.com
 dongbanghong.com
 www.roche.com
 cf.vvhan.com
 de.102198.xyz
 wallpaperflare.com
-edgeone.gh-proxy.org
 dash.domain.digitalplat.org
 mail.murata.com
 codexradar.com
