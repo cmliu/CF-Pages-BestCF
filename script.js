@@ -1080,7 +1080,7 @@ async function testLatency(address, timeout, run) {
 		address,
 		host: parsed.host,
 		port: parsed.port,
-		type: "优选域名",
+		type: preferredTypeFromTraceIp(trace.ip),
 		country: countryFromColo(trace.colo),
 		latency,
 		ipType: traceFamilyFromIp(trace.ip),
@@ -1098,6 +1098,17 @@ function preferredTypeFromCnIspCode(cnIspCode) {
 		cmcc: "移动优选"
 	};
 	return typeMap[normalizedCode] || "官方优选";
+}
+
+// 根据 trace 返回的 ip= 匹配对应协议栈（ipv4/ipv6）检测网络，取其 cnIspCode 映射优选类型
+function preferredTypeFromTraceIp(traceIp) {
+	if (traceIp && traceIp === state.ipv4) {
+		return preferredTypeFromCnIspCode(state.network.ipv4 && state.network.ipv4.cnIspCode);
+	}
+	if (traceIp && traceIp === state.ipv6) {
+		return preferredTypeFromCnIspCode(state.network.ipv6 && state.network.ipv6.cnIspCode);
+	}
+	return "官方优选";
 }
 
 function normalizeCnIspCode(value) {
