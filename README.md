@@ -69,11 +69,21 @@ npx serve .
 dash.cloudflare.com:443#CN 优选域名[dash.cloudflare.com 87ms]
 ```
 
+## 📮 优选域名投稿
+
+发现更快、更稳的 Cloudflare 官方域名？欢迎投稿至 `cf_domains.txt`，合并后所有用户的「CF域名导入」都会载入你的域名：
+
+1. 点击 [`cf_domains.txt`](https://github.com/cmliu/CF-Pages-BestCF/edit/main/cf_domains.txt) 右上角 ✏️ 直接编辑（或 Fork 本仓库后修改）
+2. 在文件末尾添加域名，**每行一个**
+3. 提交并创建 Pull Request，等待合并即可
+
+> ✅ 投稿要求：域名须由 Cloudflare CDN 承载、支持 HTTPS 公开访问且长期稳定；第三方「CF 优选域名」不在收录范围。
+
 ## 🤝 贡献指南
 
 - 🐛 **反馈问题**：提交 [Issue](https://github.com/cmliu/CF-Pages-BestCF/issues)，附上复现步骤、截图与浏览器控制台日志。
 - 🔧 **提交代码**：Fork → 新建分支 → 修改 → 发起 Pull Request。项目无构建流程，本地起一个静态服务即可验证改动。
-- 📡 **域名投稿**：向 `cf_domains.txt` 添加候选域名时，请确保该域名由 Cloudflare CDN 承载、可公开访问且长期稳定。
+- 📡 **域名投稿**：参见 [优选域名投稿](#-优选域名投稿)。
 - ✅ 提交前请保持原有代码风格与缩进（Tab 缩进）。
 
 ## 📄 License
